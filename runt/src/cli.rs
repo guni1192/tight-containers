@@ -180,13 +180,12 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn test_state_command_must_specify_container_id() {
         let args = vec!["runt", "state"];
 
         app_config()
             .get_matches_from_safe(&args)
-            .unwrap_or_else(|e| panic!("An error occurs: {}", e));
+            .expect_err("should be error");
     }
 
     #[test]
@@ -199,12 +198,30 @@ mod test {
     }
 
     #[test]
+    fn test_delete_command_must_specify_container_id() {
+        let args = vec!["runt", "delete"];
+
+        app_config()
+            .get_matches_from_safe(&args)
+            .expect_err("should be error");
+    }
+
+    #[test]
     fn test_kill_command() {
         let args = vec!["runt", "kill", "container-a", "KILL"];
 
         app_config()
             .get_matches_from_safe(&args)
             .unwrap_or_else(|e| panic!("An error occurs: {}", e));
+    }
+
+    #[test]
+    fn test_kill_command_must_specify_container_id() {
+        let args = vec!["runt", "kill"];
+
+        app_config()
+            .get_matches_from_safe(&args)
+            .expect_err("should be error");
     }
 
     #[test]
