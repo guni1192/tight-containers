@@ -64,6 +64,11 @@ impl OCIError {
     }
 }
 
+#[allow(dead_code)]
+pub fn invalid_input(message: &str) -> Error {
+    std::io::Error::new(std::io::ErrorKind::InvalidInput, message).into()
+}
+
 impl Display for OCIError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "kind: {}, description: {}", self.kind, self.description)
