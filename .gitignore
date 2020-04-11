@@ -15,3 +15,7 @@ Cargo.lock
 **/*.rs.bk
 
 # End of https://www.gitignore.io/api/rust
+
+# OCI Container 
+config.json
+rootfs
