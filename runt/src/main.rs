@@ -1,4 +1,5 @@
 mod cli;
+mod config;
 mod container;
 mod error;
 mod subcommand;
