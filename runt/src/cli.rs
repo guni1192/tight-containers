@@ -107,7 +107,7 @@ mod test {
 
     #[test]
     fn test_create_command_minimum_args() {
-        let args = vec!["runu", "create", "container-a"];
+        let args = vec!["runt", "create", "container-a"];
 
         app_config()
             .get_matches_from_safe(&args)
@@ -117,7 +117,7 @@ mod test {
     #[test]
     fn test_create_command_maximum_args() {
         let args = vec![
-            "runu",
+            "runt",
             "create",
             "--console-socket",
             "console.sock",
@@ -135,7 +135,7 @@ mod test {
 
     #[test]
     fn test_start_command() {
-        let args = vec!["runu", "start", "container-a"];
+        let args = vec!["runt", "start", "container-a"];
 
         app_config()
             .get_matches_from_safe(&args)
@@ -144,7 +144,7 @@ mod test {
 
     #[test]
     fn test_run_command_minimum() {
-        let args = vec!["runu", "run", "container-a"];
+        let args = vec!["runt", "run", "container-a"];
 
         app_config()
             .get_matches_from_safe(&args)
@@ -154,7 +154,7 @@ mod test {
     #[test]
     fn test_run_command_maximum() {
         let args = vec![
-            "runu",
+            "runt",
             "run",
             "--bundle",
             "./",
@@ -172,7 +172,7 @@ mod test {
 
     #[test]
     fn test_state_command() {
-        let args = vec!["runu", "state", "container-a"];
+        let args = vec!["runt", "state", "container-a"];
 
         app_config()
             .get_matches_from_safe(&args)
@@ -182,7 +182,7 @@ mod test {
     #[test]
     #[should_panic]
     fn test_state_command_must_specify_container_id() {
-        let args = vec!["runu", "state"];
+        let args = vec!["runt", "state"];
 
         app_config()
             .get_matches_from_safe(&args)
@@ -191,7 +191,7 @@ mod test {
 
     #[test]
     fn test_delete_command() {
-        let args = vec!["runu", "delete", "container-a"];
+        let args = vec!["runt", "delete", "container-a"];
 
         app_config()
             .get_matches_from_safe(&args)
@@ -200,7 +200,7 @@ mod test {
 
     #[test]
     fn test_kill_command() {
-        let args = vec!["runu", "kill", "container-a", "KILL"];
+        let args = vec!["runt", "kill", "container-a", "KILL"];
 
         app_config()
             .get_matches_from_safe(&args)
@@ -209,7 +209,7 @@ mod test {
 
     #[test]
     fn test_spec_command() {
-        let args = vec!["runu", "spec"];
+        let args = vec!["runt", "spec"];
 
         app_config()
             .get_matches_from_safe(&args)
