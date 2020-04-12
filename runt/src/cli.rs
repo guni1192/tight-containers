@@ -8,24 +8,6 @@ pub fn app_config<'a>() -> App<'a, 'a> {
         .about("It's OCI runtime.");
 
     // Root options {{
-    let bundle_arg = Arg::with_name("bundle")
-        .takes_value(true)
-        .long("bundle")
-        .short("b");
-
-    let pid_file_arg = Arg::with_name("pid-file")
-        .takes_value(true)
-        .long("pid-file");
-
-    let console_socket_arg = Arg::with_name("console-socket")
-        .takes_value(true)
-        .required(false)
-        .long("console-socket");
-
-    let container_id_arg = Arg::with_name("container_id")
-        .required(true)
-        .takes_value(true);
-
     let root_arg = Arg::with_name("root")
         .required(false)
         .takes_value(true)
@@ -44,7 +26,27 @@ pub fn app_config<'a>() -> App<'a, 'a> {
         .long("log-format");
     // }}
 
-    // SubCommands
+    // Offen use arguments {{
+    let bundle_arg = Arg::with_name("bundle")
+        .takes_value(true)
+        .long("bundle")
+        .short("b");
+
+    let pid_file_arg = Arg::with_name("pid-file")
+        .takes_value(true)
+        .long("pid-file");
+
+    let console_socket_arg = Arg::with_name("console-socket")
+        .takes_value(true)
+        .required(false)
+        .long("console-socket");
+
+    let container_id_arg = Arg::with_name("container_id")
+        .required(true)
+        .takes_value(true);
+    // }}
+
+    // SubCommands {{
     let create_command = SubCommand::with_name("create")
         .about("create container")
         .arg(&bundle_arg)
