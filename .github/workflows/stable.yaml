@@ -1,6 +1,6 @@
 on: [push]
 
-name: CI
+name: stable channel
 
 jobs:
   build_and_test:
