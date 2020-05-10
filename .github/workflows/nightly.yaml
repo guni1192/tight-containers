@@ -12,11 +12,13 @@ jobs:
         with:
           toolchain: nightly
           override: true
-      - uses: actions-rs/cargo@v1
+      - name: Build
+        uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-features
-      - uses: actions-rs/cargo@v1
+      - name: Testing
+        uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all-features --no-fail-fast
