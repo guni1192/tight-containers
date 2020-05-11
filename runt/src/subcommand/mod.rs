@@ -1,10 +1,9 @@
 pub mod spec;
 
+use anyhow::Result;
 use clap::ArgMatches;
 
-use crate::error::Error;
-
 pub trait SubCommand: Sized {
-    fn new(matches: &ArgMatches) -> Result<Self, Error>;
-    fn run(&self) -> Result<(), Error>;
+    fn new(matches: &ArgMatches) -> Result<Self>;
+    fn run(&self) -> Result<()>;
 }
