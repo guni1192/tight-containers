@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::path::PathBuf;
 
+use anyhow::Result;
 use clap::ArgMatches;
 
 use crate::config::SPEC_FILE;
 use crate::container::specs::Spec;
-use crate::error::Error;
 use crate::subcommand::SubCommand;
 
 pub struct SpecCommand {
@@ -13,11 +13,11 @@ pub struct SpecCommand {
 }
 
 impl SubCommand for SpecCommand {
-    fn new(matches: &ArgMatches) -> Result<Self, Error> {
+    fn new(matches: &ArgMatches) -> Result<Self> {
         let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or("."));
         Ok(SpecCommand { bundle })
     }
-    fn run(&self) -> Result<(), Error> {
+    fn run(&self) -> Result<()> {
         let file = File::create(self.bundle.join(SPEC_FILE))?;
         serde_json::to_writer(file, &Spec::default())?;
 
@@ -27,10 +27,8 @@ impl SubCommand for SpecCommand {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
     use crate::cli::app_config;
-    use crate::error::invalid_input;
     use tempfile::tempdir;
 
     #[test]
@@ -42,9 +40,10 @@ mod test {
             .unwrap_or_else(|e| panic!("An error occurs: {}", e));
 
         let subcommand = match app_matches.subcommand() {
-            ("spec", Some(matches)) => SpecCommand::new(matches),
-            _ => Err(invalid_input("invalid subcommand")),
+            ("spec", Some(matches)) => Some(SpecCommand::new(matches)),
+            _ => None,
         }
+        .unwrap()
         .unwrap();
 
         assert_eq!(subcommand.bundle, PathBuf::from("."))
@@ -59,9 +58,10 @@ mod test {
             .unwrap_or_else(|e| panic!("An error occurs: {}", e));
 
         let subcommand = match app_matches.subcommand() {
-            ("spec", Some(matches)) => SpecCommand::new(matches),
-            _ => Err(invalid_input("invalid subcommand")),
+            ("spec", Some(matches)) => Some(SpecCommand::new(matches)),
+            _ => None,
         }
+        .unwrap()
         .unwrap();
 
         assert_eq!(subcommand.bundle, PathBuf::from("/tmp/bundle"))
@@ -79,9 +79,10 @@ mod test {
             .unwrap_or_else(|e| panic!("An error occurs: {}", e));
 
         let subcommand = match app_matches.subcommand() {
-            ("spec", Some(matches)) => SpecCommand::new(matches),
-            _ => Err(invalid_input("invalid subcommand")),
+            ("spec", Some(matches)) => Some(SpecCommand::new(matches)),
+            _ => None,
         }
+        .unwrap()
         .unwrap();
         subcommand.run().unwrap();
 
