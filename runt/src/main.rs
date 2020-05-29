@@ -4,21 +4,25 @@ mod container;
 mod subcommand;
 
 use anyhow::Result;
-use subcommand::{spec::SpecCommand, SubCommand};
+use subcommand::{create::CreateCommand, spec::SpecCommand, SubCommand, SubCommandImpl};
 
 fn main() -> Result<()> {
     let mut app = cli::app_config();
     let app_matches = &app.clone().get_matches();
 
-    let subcommand = match app_matches.subcommand() {
-        ("spec", Some(matches)) => SpecCommand::new(matches),
+    let subcommand_: SubCommand = match app_matches.subcommand() {
+        ("create", Some(matches)) => SubCommand::Create(CreateCommand::new(matches)?),
+        ("spec", Some(matches)) => SubCommand::Spec(SpecCommand::new(matches)?),
         _ => {
             app.print_help()?;
             std::process::exit(1);
         }
-    }?;
+    };
 
-    subcommand.run()?;
+    match subcommand_ {
+        SubCommand::Create(command) => command.run()?,
+        SubCommand::Spec(command) => command.run()?,
+    }
 
     Ok(())
 }

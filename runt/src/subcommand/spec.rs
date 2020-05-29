@@ -6,13 +6,13 @@ use clap::ArgMatches;
 
 use crate::config::SPEC_FILE;
 use crate::container::specs::Spec;
-use crate::subcommand::SubCommand;
+use crate::subcommand::SubCommandImpl;
 
 pub struct SpecCommand {
     pub bundle: PathBuf,
 }
 
-impl SubCommand for SpecCommand {
+impl SubCommandImpl for SpecCommand {
     fn new(matches: &ArgMatches) -> Result<Self> {
         let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or("."));
         Ok(SpecCommand { bundle })
