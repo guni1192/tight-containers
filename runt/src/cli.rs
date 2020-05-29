@@ -41,7 +41,7 @@ pub fn app_config<'a>() -> App<'a, 'a> {
         .required(false)
         .long("console-socket");
 
-    let container_id_arg = Arg::with_name("container_id")
+    let container_id_arg = Arg::with_name("container-id")
         .required(true)
         .takes_value(true);
     // }}
@@ -63,7 +63,7 @@ pub fn app_config<'a>() -> App<'a, 'a> {
         .arg(&bundle_arg)
         .arg(&pid_file_arg)
         .arg(&console_socket_arg)
-        .arg(Arg::with_name("container_id").takes_value(true));
+        .arg(&container_id_arg);
 
     let state_command = SubCommand::with_name("state")
         .about("print container state")

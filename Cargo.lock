@@ -205,6 +205,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "tempfile",
+ "uuid",
 ]
 
 [[package]]
@@ -218,6 +219,9 @@ name = "serde"
 version = "1.0.110"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99e7b308464d16b56eba9964e4972a3eee817760ab60d88c3f86e1fecb08204c"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde_derive"
@@ -292,6 +296,16 @@ name = "unicode-xid"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
+
+[[package]]
+name = "uuid"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fde2f6a4bea1d6e007c4ad38c6839fa71cbb63b6dbf5b595aa38dc9b1093c11"
+dependencies = [
+ "rand",
+ "serde",
+]
 
 [[package]]
 name = "vec_map"
