@@ -35,6 +35,7 @@ impl SubCommandImpl for CreateCommand {
     fn run(&self) -> Result<()> {
         let spec = specutil::load(&self.bundle)?;
         let container = Container::new(&self.container_id, &self.bundle, spec);
+        container.create()?;
 
         Ok(())
     }

@@ -39,20 +39,20 @@ impl Container {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
     use std::fs;
 
     use uuid::Uuid;
 
-    fn init_bundle_dir(container_id: &str) -> Result<PathBuf> {
+    pub fn init_bundle_dir(container_id: &str) -> Result<PathBuf> {
         let base = tempfile::tempdir()?.into_path();
         let bundle = base.join(container_id);
         fs::create_dir_all(&bundle)?;
         Ok(bundle)
     }
 
-    fn init_rootfs_dir(bundle: &PathBuf) -> Result<PathBuf> {
+    pub fn init_rootfs_dir(bundle: &PathBuf) -> Result<PathBuf> {
         let dir_name = Uuid::new_v4().to_string();
         let rootfs = bundle.join(dir_name);
         fs::create_dir_all(&rootfs)?;

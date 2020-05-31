@@ -22,3 +22,23 @@ pub fn write(bundle: &PathBuf, spec: &Spec) -> Result<()> {
     serde_json::to_writer(&mut config_file, &spec)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use uuid::Uuid;
+
+    use crate::container::test::init_bundle_dir;
+
+    #[test]
+    fn load_container_file() {
+        let container_id = Uuid::new_v4().to_string();
+        let bundle = init_bundle_dir(&container_id).unwrap();
+
+        assert!(write(&bundle, &Spec::default()).is_ok());
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        assert!(load(&bundle).is_ok());
+    }
+}
