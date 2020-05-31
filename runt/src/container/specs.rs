@@ -27,7 +27,7 @@ pub struct State {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pid: Option<i32>,
     pub bundle: PathBuf,
-    pub rootfs: String,
+    pub rootfs: PathBuf,
     pub owner: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub annotation: Option<HashMap<String, String>>,

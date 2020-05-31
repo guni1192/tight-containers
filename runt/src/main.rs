@@ -1,6 +1,7 @@
 mod cli;
 mod config;
 mod container;
+mod specutil;
 mod subcommand;
 
 use anyhow::Result;

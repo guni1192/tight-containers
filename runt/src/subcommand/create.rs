@@ -1,11 +1,10 @@
-use std::fs::File;
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::ArgMatches;
 
-use crate::config::SPEC_FILE;
-use crate::container::specs::Spec;
+use crate::container::Container;
+use crate::specutil;
 use crate::subcommand::SubCommandImpl;
 
 pub struct CreateCommand {
@@ -34,8 +33,8 @@ impl SubCommandImpl for CreateCommand {
     }
 
     fn run(&self) -> Result<()> {
-        let file = File::create(self.bundle.join(SPEC_FILE))?;
-        serde_json::to_writer(file, &Spec::default())?;
+        let spec = specutil::load(&self.bundle)?;
+        let container = Container::new(&self.container_id, &self.bundle, spec);
 
         Ok(())
     }
