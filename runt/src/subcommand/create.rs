@@ -18,12 +18,8 @@ impl SubCommandImpl for CreateCommand {
     fn new(matches: &ArgMatches) -> Result<Self> {
         let container_id = matches.value_of("container-id").unwrap();
         let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or("."));
-        let pid_file = matches
-            .value_of("pid-file")
-            .and_then(|path| Some(PathBuf::from(path)));
-        let console_socket = matches
-            .value_of("console-socket")
-            .and_then(|path| Some(PathBuf::from(path)));
+        let pid_file = matches.value_of("pid-file").map(PathBuf::from);
+        let console_socket = matches.value_of("console-socket").map(PathBuf::from);
         Ok(CreateCommand {
             container_id: container_id.into(),
             bundle,
