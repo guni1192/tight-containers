@@ -2,4 +2,4 @@ branch: true
 ignore-not-existing: true
 llvm: true
 ignore:
-  - "runt/src/main.rs"
+  - "../*"
