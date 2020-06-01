@@ -1,11 +1,10 @@
-use std::fs::File;
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::ArgMatches;
 
-use crate::config::SPEC_FILE;
-use crate::container::specs::Spec;
+use crate::container::Container;
+use crate::specutil;
 use crate::subcommand::SubCommandImpl;
 
 pub struct CreateCommand {
@@ -19,12 +18,8 @@ impl SubCommandImpl for CreateCommand {
     fn new(matches: &ArgMatches) -> Result<Self> {
         let container_id = matches.value_of("container-id").unwrap();
         let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or("."));
-        let pid_file = matches
-            .value_of("pid-file")
-            .and_then(|path| Some(PathBuf::from(path)));
-        let console_socket = matches
-            .value_of("console-socket")
-            .and_then(|path| Some(PathBuf::from(path)));
+        let pid_file = matches.value_of("pid-file").map(PathBuf::from);
+        let console_socket = matches.value_of("console-socket").map(PathBuf::from);
         Ok(CreateCommand {
             container_id: container_id.into(),
             bundle,
@@ -34,8 +29,9 @@ impl SubCommandImpl for CreateCommand {
     }
 
     fn run(&self) -> Result<()> {
-        let file = File::create(self.bundle.join(SPEC_FILE))?;
-        serde_json::to_writer(file, &Spec::default())?;
+        let spec = specutil::load(&self.bundle)?;
+        let container = Container::new(&self.container_id, &self.bundle, spec);
+        container.create()?;
 
         Ok(())
     }
@@ -45,8 +41,10 @@ impl SubCommandImpl for CreateCommand {
 mod test {
 
     use super::*;
-    use crate::cli::app_config;
     use uuid::Uuid;
+
+    use crate::cli::app_config;
+    use crate::container::testutil;
 
     fn init_create_command(args: Vec<&str>) -> CreateCommand {
         let app_matches = app_config()
@@ -84,24 +82,34 @@ mod test {
     #[test]
     fn bundle_should_be_specify_dir() {
         let container_id = Uuid::new_v4().to_string();
-        let args = vec!["runt", "create", "-b", "/tmp/bundle", &container_id];
+        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+
+        let args = vec![
+            "runt",
+            "create",
+            "-b",
+            bundle.to_str().unwrap(),
+            &container_id,
+        ];
 
         let create_command = init_create_command(args);
 
         assert_eq!(create_command.container_id, container_id);
-        assert_eq!(create_command.bundle, PathBuf::from("/tmp/bundle"));
+        assert_eq!(create_command.bundle, bundle);
         assert_eq!(create_command.console_socket, None);
         assert_eq!(create_command.pid_file, None);
+        testutil::cleanup(&bundle).unwrap();
     }
 
     #[test]
     fn console_socket_should_be_specify_path() {
         let container_id = Uuid::new_v4().to_string();
+        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
         let args = vec![
             "runt",
             "create",
             "-b",
-            "/tmp/bundle",
+            bundle.to_str().unwrap(),
             "--console-socket",
             "/tmp/console.sock",
             &container_id,
@@ -110,22 +118,24 @@ mod test {
         let create_command = init_create_command(args);
 
         assert_eq!(create_command.container_id, container_id);
-        assert_eq!(create_command.bundle, PathBuf::from("/tmp/bundle"));
+        assert_eq!(create_command.bundle, bundle);
         assert_eq!(
             create_command.console_socket,
             Some(PathBuf::from("/tmp/console.sock"))
         );
         assert_eq!(create_command.pid_file, None);
+        testutil::cleanup(&bundle).unwrap();
     }
 
     #[test]
     fn pid_file_should_be_specify_path() {
         let container_id = Uuid::new_v4().to_string();
+        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
         let args = vec![
             "runt",
             "create",
-            "-b",
-            "/tmp/bundle",
+            "--bundle",
+            bundle.to_str().unwrap(),
             "--console-socket",
             "/tmp/console.sock",
             "--pid-file",
@@ -136,7 +146,7 @@ mod test {
         let create_command = init_create_command(args);
 
         assert_eq!(create_command.container_id, container_id);
-        assert_eq!(create_command.bundle, PathBuf::from("/tmp/bundle"));
+        assert_eq!(create_command.bundle, bundle);
         assert_eq!(
             create_command.console_socket,
             Some(PathBuf::from("/tmp/console.sock"))
@@ -145,5 +155,27 @@ mod test {
             create_command.pid_file,
             Some(PathBuf::from("/tmp/container.pid"))
         );
+        testutil::cleanup(&bundle).unwrap();
+    }
+
+    #[test]
+    fn create_shuould_be_success() {
+        let container_id = Uuid::new_v4().to_string();
+        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+        testutil::init_spec_file(&bundle).unwrap();
+
+        let args = vec![
+            "runt",
+            "create",
+            "--bundle",
+            bundle.to_str().unwrap(),
+            &container_id,
+        ];
+
+        let create_command = init_create_command(args);
+
+        assert!(create_command.run().is_ok());
+
+        testutil::cleanup(&bundle).unwrap();
     }
 }

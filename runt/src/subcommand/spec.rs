@@ -1,11 +1,10 @@
-use std::fs::File;
 use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::ArgMatches;
 
-use crate::config::SPEC_FILE;
 use crate::container::specs::Spec;
+use crate::specutil;
 use crate::subcommand::SubCommandImpl;
 
 pub struct SpecCommand {
@@ -18,9 +17,7 @@ impl SubCommandImpl for SpecCommand {
         Ok(SpecCommand { bundle })
     }
     fn run(&self) -> Result<()> {
-        let file = File::create(self.bundle.join(SPEC_FILE))?;
-        serde_json::to_writer(file, &Spec::default())?;
-
+        specutil::write(&self.bundle, &Spec::default())?;
         Ok(())
     }
 }
@@ -29,6 +26,7 @@ impl SubCommandImpl for SpecCommand {
 mod test {
     use super::*;
     use crate::cli::app_config;
+    use crate::config::SPEC_FILE;
     use tempfile::tempdir;
 
     #[test]
