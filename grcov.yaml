@@ -1,5 +1,15 @@
 branch: true
 ignore-not-existing: true
 llvm: true
+output-type: lcov
+output-file: ./lcov.info
 ignore:
+  - "/*"
   - "../*"
+  - "**/examples/**"
+excl-line: "#\\[derive\\("
+excl-br-line: "#\\[derive\\("
+excl-start: "mod tests \\{"
+excl-br-start: "mod tests \\{"
+excl-start: "mod test \\{"
+excl-br-start: "mod test \\{"
