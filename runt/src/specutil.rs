@@ -29,7 +29,7 @@ mod test {
 
     use uuid::Uuid;
 
-    use crate::container::test::init_bundle_dir;
+    use crate::container::testutil::init_bundle_dir;
 
     #[test]
     fn load_container_file() {

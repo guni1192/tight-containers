@@ -39,11 +39,13 @@ impl Container {
 }
 
 #[cfg(test)]
-pub mod test {
+pub mod testutil {
     use super::*;
     use std::fs;
 
     use uuid::Uuid;
+
+    use crate::specutil;
 
     pub fn init_bundle_dir(container_id: &str) -> Result<PathBuf> {
         let base = tempfile::tempdir()?.into_path();
@@ -59,11 +61,31 @@ pub mod test {
         Ok(rootfs)
     }
 
+    pub fn init_spec_file(bundle: &PathBuf) -> Result<()> {
+        let mut spec = Spec::default();
+        spec.root.path = bundle.clone().to_str().unwrap().to_string();
+
+        specutil::write(&bundle, &spec)?;
+        Ok(())
+    }
+
+    pub fn cleanup(bundle: &PathBuf) -> Result<()> {
+        fs::remove_dir_all(&bundle)?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::*;
+
+    use uuid::Uuid;
+
     #[test]
     fn bundle_should_be_current_dir() {
         let container_id = Uuid::new_v4().to_string();
-        let bundle = init_bundle_dir(&container_id).unwrap();
-        let rootfs = init_rootfs_dir(&bundle).unwrap();
+        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+        let rootfs = testutil::init_rootfs_dir(&bundle).unwrap();
         let mut spec = Spec::default();
         spec.root.path = rootfs.to_str().unwrap().into();
 
@@ -76,5 +98,6 @@ pub mod test {
         assert_eq!(state.bundle, bundle);
         assert_eq!(state.rootfs, rootfs);
         assert_eq!(state.status, Status::Created);
+        testutil::cleanup(&bundle).unwrap();
     }
 }
