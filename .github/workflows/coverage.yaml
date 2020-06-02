@@ -1,6 +1,6 @@
-on: [push, pull_request]
+on: [push]
 
-name: nightly channel
+name: Coverage
 
 jobs:
   build_and_test:
@@ -12,11 +12,6 @@ jobs:
         with:
           toolchain: nightly
           override: true
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-features
       - name: Testing
         uses: actions-rs/cargo@v1
         with:

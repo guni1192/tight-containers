@@ -1,5 +1,13 @@
-branch: true
 ignore-not-existing: true
 llvm: true
+output-type: lcov
+output-file: ./lcov.info
 ignore:
-  - "runt/src/main.rs"
+  - "/*"
+  - "../*"
+  - "**/examples/**"
+  - "**/main.rs"
+excl-line: "#\\[derive\\("
+excl-br-line: "#\\[derive\\("
+excl-start: "mod test \\{"
+excl-br-start: "mod test \\{"
