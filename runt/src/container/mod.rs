@@ -1,17 +1,19 @@
+use std::fs::{self, File};
 use std::path::PathBuf;
 
 use anyhow::Result;
+use serde_derive::{Deserialize, Serialize};
 
-use crate::container::specs::{Spec, State, Status, OCI_VERSION};
+use crate::container::specs::{Spec, Status};
 
 pub mod specs;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Container {
     pub id: String,
     pub spec: Spec,
     pub bundle: PathBuf,
-    // pub state: State,
-    // pub metadata: Metadata
+    pub status: Status,
 }
 
 impl Container {
@@ -20,21 +22,63 @@ impl Container {
             id: id.into(),
             bundle: bundle.to_path_buf(),
             spec,
+            status: Status::Creating,
         }
     }
 
-    pub fn create(&self) -> Result<State> {
-        Ok(State {
-            oci_version: OCI_VERSION.into(),
-            id: self.id.clone(),
+    pub fn create(&mut self) -> Result<()> {
+        // write statefile
+        self.save_metadata(&self)?;
+        // -----
+        // container creating
+        // -----
+
+        self.status = Status::Created;
+        self.save_metadata(&self)?;
+        Ok(())
+    }
+}
+
+pub static DEFAULT_META_ROOT: &str = "/tmp/runt";
+
+trait MetadataManager {
+    fn save_metadata(&self, container: &Container) -> Result<()>;
+    fn load() -> Result<Container>;
+    fn lock(&self) -> Result<()>;
+    fn unlock(&self) -> Result<()>;
+}
+
+impl MetadataManager for Container {
+    fn save_metadata(&self, container: &Container) -> Result<()> {
+        self.lock()?;
+
+        let metadata_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container.id);
+        if !metadata_dir.exists() {
+            fs::create_dir_all(&metadata_dir)?;
+        }
+        let statefile = File::create(metadata_dir.join("state.json"))?;
+        serde_json::to_writer(statefile, &container)?;
+
+        self.unlock()?;
+        Ok(())
+    }
+
+    fn lock(&self) -> Result<()> {
+        Ok(())
+    }
+
+    fn unlock(&self) -> Result<()> {
+        Ok(())
+    }
+
+    fn load() -> Result<Container> {
+        let container = Container {
+            id: "hoge".into(),
+            bundle: PathBuf::from("."),
+            spec: Spec::default(),
             status: Status::Created,
-            pid: None,
-            bundle: self.bundle.clone(),
-            rootfs: PathBuf::from(self.spec.root.path.clone()),
-            owner: "root".into(), // TODO: getusername
-            annotation: None,
-            created: None, // TODO:
-        })
+        };
+        Ok(container)
     }
 }
 
@@ -69,8 +113,16 @@ pub mod testutil {
         Ok(())
     }
 
-    pub fn cleanup(bundle: &PathBuf) -> Result<()> {
-        fs::remove_dir_all(&bundle)?;
+    pub fn cleanup(bundle: &PathBuf, meta_dir: &PathBuf) -> Result<()> {
+        // bundledir have rootfs, config.json
+        if bundle.exists() {
+            fs::remove_dir_all(&bundle)?;
+        }
+
+        // remove statefile(e.g /run/runt/<container-id>/state.json)
+        if meta_dir.exists() {
+            fs::remove_dir_all(&meta_dir)?;
+        }
         Ok(())
     }
 }
@@ -89,15 +141,15 @@ pub mod test {
         let mut spec = Spec::default();
         spec.root.path = rootfs.to_str().unwrap().into();
 
-        let container = Container::new(&container_id, &bundle, spec);
+        let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
-        let state = container.create().unwrap();
+        let mut container = Container::new(&container_id, &bundle, spec);
 
-        assert_eq!(state.oci_version, OCI_VERSION.to_string());
-        assert_eq!(state.id, container_id.to_string());
-        assert_eq!(state.bundle, bundle);
-        assert_eq!(state.rootfs, rootfs);
-        assert_eq!(state.status, Status::Created);
-        testutil::cleanup(&bundle).unwrap();
+        container.create().unwrap();
+
+        assert_eq!(container.id, container_id);
+        assert_eq!(container.bundle, bundle);
+        assert_eq!(container.status, Status::Created);
+        testutil::cleanup(&bundle, &meta_dir).unwrap();
     }
 }
