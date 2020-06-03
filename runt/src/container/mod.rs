@@ -1,7 +1,9 @@
 use std::fs::{self, File};
+use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use nix::fcntl::{flock, FlockArg};
 use serde_derive::{Deserialize, Serialize};
 
 use crate::container::specs::{Spec, Status};
@@ -44,33 +46,25 @@ pub static DEFAULT_META_ROOT: &str = "/tmp/runt";
 trait MetadataManager {
     fn save_metadata(&self, container: &Container) -> Result<()>;
     fn load() -> Result<Container>;
-    fn lock(&self) -> Result<()>;
-    fn unlock(&self) -> Result<()>;
+    fn lock(&self, file: &File) -> Result<()>;
+    fn unlock(&self, file: &File) -> Result<()>;
 }
 
 impl MetadataManager for Container {
     fn save_metadata(&self, container: &Container) -> Result<()> {
-        self.lock()?;
-
         let metadata_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container.id);
         if !metadata_dir.exists() {
             fs::create_dir_all(&metadata_dir)?;
         }
         let statefile = File::create(metadata_dir.join("state.json"))?;
-        serde_json::to_writer(statefile, &container)?;
 
-        self.unlock()?;
+        self.lock(&statefile)?;
+
+        serde_json::to_writer(&statefile, &container)?;
+
+        self.unlock(&statefile)?;
         Ok(())
     }
-
-    fn lock(&self) -> Result<()> {
-        Ok(())
-    }
-
-    fn unlock(&self) -> Result<()> {
-        Ok(())
-    }
-
     fn load() -> Result<Container> {
         let container = Container {
             id: "hoge".into(),
@@ -79,6 +73,18 @@ impl MetadataManager for Container {
             status: Status::Created,
         };
         Ok(container)
+    }
+
+    fn lock(&self, file: &File) -> Result<()> {
+        let fd = file.as_raw_fd();
+        flock(fd, FlockArg::LockExclusive)?;
+        Ok(())
+    }
+
+    fn unlock(&self, file: &File) -> Result<()> {
+        let fd = file.as_raw_fd();
+        flock(fd, FlockArg::Unlock)?;
+        Ok(())
     }
 }
 
@@ -144,11 +150,12 @@ pub mod test {
         let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
         let mut container = Container::new(&container_id, &bundle, spec);
-
-        container.create().unwrap();
-
         assert_eq!(container.id, container_id);
         assert_eq!(container.bundle, bundle);
+        assert_eq!(container.status, Status::Creating);
+
+        assert!(container.create().is_ok());
+
         assert_eq!(container.status, Status::Created);
         testutil::cleanup(&bundle, &meta_dir).unwrap();
     }
