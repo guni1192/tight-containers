@@ -13,7 +13,7 @@ pub struct SpecCommand {
 
 impl SubCommandImpl for SpecCommand {
     fn new(matches: &ArgMatches) -> Result<Self> {
-        let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or("."));
+        let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or(".")).canonicalize()?;
         Ok(SpecCommand { bundle })
     }
     fn run(&self) -> Result<()> {
@@ -25,9 +25,12 @@ impl SubCommandImpl for SpecCommand {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use tempfile::tempdir;
+
     use crate::cli::app_config;
     use crate::config::SPEC_FILE;
-    use tempfile::tempdir;
+    use crate::container::testutil;
 
     #[test]
     fn bundle_should_be_current_dir() {
@@ -44,12 +47,16 @@ mod test {
         .unwrap()
         .unwrap();
 
-        assert_eq!(subcommand.bundle, PathBuf::from("."))
+        assert_eq!(
+            subcommand.bundle,
+            PathBuf::from(".").canonicalize().unwrap()
+        )
     }
 
     #[test]
     fn bundle_should_be_specify_dir() {
-        let args = vec!["runt", "spec", "-b", "/tmp/bundle"];
+        let bundle = testutil::init_bundle_dir().unwrap();
+        let args = vec!["runt", "spec", "-b", bundle.to_str().unwrap()];
 
         let app_matches = app_config()
             .get_matches_from_safe(&args)
@@ -62,7 +69,9 @@ mod test {
         .unwrap()
         .unwrap();
 
-        assert_eq!(subcommand.bundle, PathBuf::from("/tmp/bundle"))
+        assert_eq!(subcommand.bundle, bundle);
+
+        testutil::cleanup(&[&bundle]).unwrap();
     }
 
     #[test]

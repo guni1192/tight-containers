@@ -17,7 +17,7 @@ pub struct CreateCommand {
 impl SubCommandImpl for CreateCommand {
     fn new(matches: &ArgMatches) -> Result<Self> {
         let container_id = matches.value_of("container-id").unwrap();
-        let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or("."));
+        let bundle = PathBuf::from(matches.value_of("bundle").unwrap_or(".")).canonicalize()?;
         let pid_file = matches.value_of("pid-file").map(PathBuf::from);
         let console_socket = matches.value_of("console-socket").map(PathBuf::from);
         Ok(CreateCommand {
@@ -75,7 +75,10 @@ mod test {
         let create_command = init_create_command(args);
 
         assert_eq!(create_command.container_id, container_id);
-        assert_eq!(create_command.bundle, PathBuf::from("."));
+        assert_eq!(
+            create_command.bundle,
+            PathBuf::from(".").canonicalize().unwrap()
+        );
         assert_eq!(create_command.console_socket, None);
         assert_eq!(create_command.pid_file, None);
     }
@@ -84,7 +87,6 @@ mod test {
     fn bundle_should_be_specify_dir() {
         let container_id = Uuid::new_v4().to_string();
         let bundle = testutil::init_bundle_dir().unwrap();
-        let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
         let args = vec![
             "runt",
@@ -100,7 +102,7 @@ mod test {
         assert_eq!(create_command.bundle, bundle);
         assert_eq!(create_command.console_socket, None);
         assert_eq!(create_command.pid_file, None);
-        testutil::cleanup(&bundle, &meta_dir).unwrap();
+        testutil::cleanup(&[&bundle]).unwrap();
     }
 
     #[test]
@@ -117,7 +119,6 @@ mod test {
             &container_id,
         ];
 
-        let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
         let create_command = init_create_command(args);
 
         assert_eq!(create_command.container_id, container_id);
@@ -127,7 +128,7 @@ mod test {
             Some(PathBuf::from("/tmp/console.sock"))
         );
         assert_eq!(create_command.pid_file, None);
-        testutil::cleanup(&bundle, &meta_dir).unwrap();
+        testutil::cleanup(&[&bundle]).unwrap();
     }
 
     #[test]
@@ -145,7 +146,6 @@ mod test {
             "/tmp/container.pid",
             &container_id,
         ];
-        let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
         let create_command = init_create_command(args);
 
@@ -159,7 +159,7 @@ mod test {
             create_command.pid_file,
             Some(PathBuf::from("/tmp/container.pid"))
         );
-        testutil::cleanup(&bundle, &meta_dir).unwrap();
+        testutil::cleanup(&[&bundle]).unwrap();
     }
 
     #[test]
@@ -182,6 +182,6 @@ mod test {
 
         assert!(create_command.run().is_ok());
 
-        testutil::cleanup(&bundle, &meta_dir).unwrap();
+        testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
 }
