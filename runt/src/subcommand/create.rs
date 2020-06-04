@@ -83,7 +83,7 @@ mod test {
     #[test]
     fn bundle_should_be_specify_dir() {
         let container_id = Uuid::new_v4().to_string();
-        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+        let bundle = testutil::init_bundle_dir().unwrap();
         let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
         let args = vec![
@@ -106,7 +106,7 @@ mod test {
     #[test]
     fn console_socket_should_be_specify_path() {
         let container_id = Uuid::new_v4().to_string();
-        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+        let bundle = testutil::init_bundle_dir().unwrap();
         let args = vec![
             "runt",
             "create",
@@ -133,7 +133,7 @@ mod test {
     #[test]
     fn pid_file_should_be_specify_path() {
         let container_id = Uuid::new_v4().to_string();
-        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+        let bundle = testutil::init_bundle_dir().unwrap();
         let args = vec![
             "runt",
             "create",
@@ -165,9 +165,10 @@ mod test {
     #[test]
     fn create_shuould_be_success() {
         let container_id = Uuid::new_v4().to_string();
-        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+        let bundle = testutil::init_bundle_dir().unwrap();
         let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
-        testutil::init_spec_file(&bundle).unwrap();
+        let rootfs = testutil::init_rootfs_dir(&bundle).unwrap();
+        testutil::init_spec_file(&bundle, &rootfs).unwrap();
 
         let args = vec![
             "runt",

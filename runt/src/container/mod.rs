@@ -29,8 +29,9 @@ impl Container {
     }
 
     pub fn create(&mut self) -> Result<()> {
-        // write statefile
+        // assert_eq!(container.status, Status::Creating)
         self.save_metadata(&self)?;
+
         // -----
         // container creating
         // -----
@@ -97,9 +98,8 @@ pub mod testutil {
 
     use crate::specutil;
 
-    pub fn init_bundle_dir(container_id: &str) -> Result<PathBuf> {
-        let base = tempfile::tempdir()?.into_path();
-        let bundle = base.join(container_id);
+    pub fn init_bundle_dir() -> Result<PathBuf> {
+        let bundle = tempfile::tempdir()?.into_path();
         fs::create_dir_all(&bundle)?;
         Ok(bundle)
     }
@@ -111,9 +111,9 @@ pub mod testutil {
         Ok(rootfs)
     }
 
-    pub fn init_spec_file(bundle: &PathBuf) -> Result<()> {
+    pub fn init_spec_file(bundle: &PathBuf, rootfs: &PathBuf) -> Result<()> {
         let mut spec = Spec::default();
-        spec.root.path = bundle.clone().to_str().unwrap().to_string();
+        spec.root.path = rootfs.clone().to_str().unwrap().to_string();
 
         specutil::write(&bundle, &spec)?;
         Ok(())
@@ -139,13 +139,15 @@ pub mod test {
 
     use uuid::Uuid;
 
+    use crate::specutil;
+
     #[test]
     fn bundle_should_be_current_dir() {
         let container_id = Uuid::new_v4().to_string();
-        let bundle = testutil::init_bundle_dir(&container_id).unwrap();
+        let bundle = testutil::init_bundle_dir().unwrap();
         let rootfs = testutil::init_rootfs_dir(&bundle).unwrap();
-        let mut spec = Spec::default();
-        spec.root.path = rootfs.to_str().unwrap().into();
+        testutil::init_spec_file(&bundle, &rootfs).unwrap();
+        let spec = specutil::load(&bundle).unwrap();
 
         let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
