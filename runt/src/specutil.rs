@@ -29,16 +29,19 @@ mod test {
 
     use uuid::Uuid;
 
-    use crate::container::testutil::init_bundle_dir;
+    use crate::container::testutil;
+    use crate::container::DEFAULT_META_ROOT;
 
     #[test]
     fn load_container_file() {
         let container_id = Uuid::new_v4().to_string();
-        let bundle = init_bundle_dir(&container_id).unwrap();
+        let bundle = testutil::init_bundle_dir().unwrap();
+        let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
         assert!(write(&bundle, &Spec::default()).is_ok());
         std::thread::sleep(std::time::Duration::from_millis(100));
 
         assert!(load(&bundle).is_ok());
+        testutil::cleanup(&bundle, &meta_dir).unwrap();
     }
 }
