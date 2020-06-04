@@ -47,6 +47,12 @@ impl Container {
         Ok(())
     }
 
+    pub fn delete(&self) -> Result<()> {
+        self.remove_metadata()?;
+
+        Ok(())
+    }
+
     pub fn state(&self) -> Result<State> {
         let owner = User::from_uid(Uid::effective())?.expect("contaienr owner not detected: ");
         Ok(State {
@@ -68,6 +74,7 @@ pub static METADATA_FILE: &str = "state.json";
 
 pub trait MetadataManager {
     fn save_metadata(&self, container: &Container) -> Result<()>;
+    fn remove_metadata(&self) -> Result<()>;
     fn load(container_id: &str) -> Result<Container>;
     fn lock(&self, file: &File) -> Result<()>;
     fn unlock(&self, file: &File) -> Result<()>;
@@ -88,6 +95,15 @@ impl MetadataManager for Container {
         self.unlock(&statefile)?;
         Ok(())
     }
+
+    fn remove_metadata(&self) -> Result<()> {
+        let metadata_dir = PathBuf::from(DEFAULT_META_ROOT).join(&self.id);
+        if metadata_dir.exists() {
+            fs::remove_dir_all(&metadata_dir)?;
+        }
+        Ok(())
+    }
+
     fn load(container_id: &str) -> Result<Container> {
         let statefile_path = PathBuf::from(DEFAULT_META_ROOT)
             .join(&container_id)
@@ -231,6 +247,25 @@ pub mod test {
         assert_eq!(loaded_container.id, container.id);
         assert_eq!(loaded_container.bundle, container.bundle);
         assert_eq!(loaded_container.status, container.status);
+
+        testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
+    }
+
+    #[test]
+    fn container_deleting_should_be_successful() {
+        let container_id = Uuid::new_v4().to_string();
+        let bundle = testutil::init_bundle_dir().unwrap();
+        let rootfs = testutil::init_rootfs_dir(&bundle).unwrap();
+        testutil::init_spec_file(&bundle, &rootfs).unwrap();
+        let spec = specutil::load(&bundle).unwrap();
+
+        let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
+
+        let mut container = Container::new(&container_id, &bundle, spec);
+        assert!(container.create().is_ok());
+
+        assert!(container.delete().is_ok());
+        assert!(!meta_dir.exists());
 
         testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
