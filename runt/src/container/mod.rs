@@ -47,7 +47,7 @@ impl Container {
         Ok(())
     }
 
-    pub fn delete(&mut self) -> Result<()> {
+    pub fn delete(&self) -> Result<()> {
         self.remove_metadata()?;
 
         Ok(())
@@ -98,7 +98,7 @@ impl MetadataManager for Container {
 
     fn remove_metadata(&self) -> Result<()> {
         let metadata_dir = PathBuf::from(DEFAULT_META_ROOT).join(&self.id);
-        if !metadata_dir.exists() {
+        if metadata_dir.exists() {
             fs::remove_dir_all(&metadata_dir)?;
         }
         Ok(())
@@ -264,7 +264,8 @@ pub mod test {
         let mut container = Container::new(&container_id, &bundle, spec);
         assert!(container.create().is_ok());
 
-        assert!(container.remove_metadata().is_ok());
+        assert!(container.delete().is_ok());
+        assert!(!meta_dir.exists());
 
         testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
