@@ -3,6 +3,7 @@ use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use nix::fcntl::{flock, FlockArg};
 use nix::unistd::{Uid, User};
 use serde_derive::{Deserialize, Serialize};
@@ -17,6 +18,7 @@ pub struct Container {
     pub spec: Spec,
     pub bundle: PathBuf,
     pub status: Status,
+    pub created: Option<DateTime<Utc>>,
 }
 
 impl Container {
@@ -26,6 +28,7 @@ impl Container {
             bundle: bundle.to_path_buf(),
             spec,
             status: Status::Creating,
+            created: None,
         }
     }
 
@@ -38,6 +41,7 @@ impl Container {
         // -----
 
         self.status = Status::Created;
+        self.created = Some(DateTime::from(Utc::now()));
         self.save_metadata(&self)?;
         Ok(())
     }
@@ -53,12 +57,13 @@ impl Container {
             rootfs: PathBuf::from(&self.spec.root.path),
             owner: owner.name,
             annotation: None,
-            created: None,
+            created: self.created,
         })
     }
 }
 
 pub static DEFAULT_META_ROOT: &str = "/tmp/runt";
+pub static METADATA_FILE: &str = "state.json";
 
 pub trait MetadataManager {
     fn save_metadata(&self, container: &Container) -> Result<()>;
@@ -73,7 +78,7 @@ impl MetadataManager for Container {
         if !metadata_dir.exists() {
             fs::create_dir_all(&metadata_dir)?;
         }
-        let statefile = File::create(metadata_dir.join("state.json"))?;
+        let statefile = File::create(metadata_dir.join(METADATA_FILE))?;
 
         self.lock(&statefile)?;
 
@@ -85,7 +90,7 @@ impl MetadataManager for Container {
     fn load(container_id: &str) -> Result<Container> {
         let statefile_path = PathBuf::from(DEFAULT_META_ROOT)
             .join(&container_id)
-            .join("state.json");
+            .join(METADATA_FILE);
 
         let statefile = File::open(statefile_path)?;
         let container: Container = serde_json::from_reader(statefile)?;
@@ -188,7 +193,7 @@ pub mod test {
 
         let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
 
-        let container = Container::new(&container_id, &bundle, spec);
+        let mut container = Container::new(&container_id, &bundle, spec);
         let state = container.state().unwrap();
         let owner = User::from_uid(Uid::effective()).unwrap().unwrap();
 
@@ -196,7 +201,12 @@ pub mod test {
         assert_eq!(state.bundle, bundle);
         assert_eq!(state.rootfs, rootfs);
         assert!(state.pid.is_none());
+        assert!(state.created.is_none());
         assert_eq!(state.owner, owner.name);
+
+        assert!(container.create().is_ok());
+        let state = container.state().unwrap();
+        assert!(state.created.is_some());
 
         testutil::cleanup(&bundle, &meta_dir).unwrap();
     }
@@ -220,6 +230,7 @@ pub mod test {
 
         let loaded_container = loaded_container.unwrap();
 
+        assert!(loaded_container.created.is_some());
         assert_eq!(loaded_container.id, container.id);
         assert_eq!(loaded_container.bundle, container.bundle);
         assert_eq!(loaded_container.status, container.status);

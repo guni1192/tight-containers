@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 
 pub static OCI_VERSION: &str = "1.0.1-dev";
@@ -32,7 +33,7 @@ pub struct State {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub annotation: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub created: Option<String>,
+    pub created: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
