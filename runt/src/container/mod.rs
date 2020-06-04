@@ -41,7 +41,7 @@ impl Container {
         // -----
 
         self.status = Status::Created;
-        self.created = Some(DateTime::from(Utc::now()));
+        self.created = Some(Utc::now());
         self.save_metadata(&self)?;
         Ok(())
     }
