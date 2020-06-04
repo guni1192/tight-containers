@@ -5,7 +5,10 @@ mod specutil;
 mod subcommand;
 
 use anyhow::Result;
-use subcommand::{create::CreateCommand, spec::SpecCommand, SubCommand, SubCommandImpl};
+use subcommand::create::CreateCommand;
+use subcommand::spec::SpecCommand;
+use subcommand::state::StateCommand;
+use subcommand::{SubCommand, SubCommandImpl};
 
 fn main() -> Result<()> {
     let mut app = cli::app_config();
@@ -14,6 +17,7 @@ fn main() -> Result<()> {
     let subcommand_: SubCommand = match app_matches.subcommand() {
         ("create", Some(matches)) => SubCommand::Create(CreateCommand::new(matches)?),
         ("spec", Some(matches)) => SubCommand::Spec(SpecCommand::new(matches)?),
+        ("state", Some(matches)) => SubCommand::State(StateCommand::new(matches)?),
         _ => {
             app.print_help()?;
             std::process::exit(1);
@@ -23,6 +27,7 @@ fn main() -> Result<()> {
     match subcommand_ {
         SubCommand::Create(command) => command.run()?,
         SubCommand::Spec(command) => command.run()?,
+        SubCommand::State(command) => command.run()?,
     }
 
     Ok(())
