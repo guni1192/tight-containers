@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use nix::fcntl::{flock, FlockArg};
+use nix::unistd::{Uid, User};
 use serde_derive::{Deserialize, Serialize};
 
 use crate::container::specs::{Spec, State, Status, OCI_VERSION};
@@ -42,6 +43,7 @@ impl Container {
     }
 
     pub fn state(&self) -> Result<State> {
+        let owner = User::from_uid(Uid::effective())?.expect("contaienr owner not detected: ");
         Ok(State {
             oci_version: OCI_VERSION.into(),
             id: self.id.clone(),
@@ -49,7 +51,7 @@ impl Container {
             pid: None,
             bundle: self.bundle.clone(),
             rootfs: PathBuf::from(&self.spec.root.path),
-            owner: "root".into(),
+            owner: owner.name,
             annotation: None,
             created: None,
         })
@@ -81,12 +83,12 @@ impl MetadataManager for Container {
         Ok(())
     }
     fn load(container_id: &str) -> Result<Container> {
-        let container = Container {
-            id: "hoge".into(),
-            bundle: PathBuf::from("."),
-            spec: Spec::default(),
-            status: Status::Created,
-        };
+        let statefile_path = PathBuf::from(DEFAULT_META_ROOT)
+            .join(&container_id)
+            .join("state.json");
+
+        let statefile = File::open(statefile_path)?;
+        let container: Container = serde_json::from_reader(statefile)?;
         Ok(container)
     }
 
@@ -188,10 +190,39 @@ pub mod test {
 
         let container = Container::new(&container_id, &bundle, spec);
         let state = container.state().unwrap();
+        let owner = User::from_uid(Uid::effective()).unwrap().unwrap();
+
         assert_eq!(state.id, container_id);
         assert_eq!(state.bundle, bundle);
         assert_eq!(state.rootfs, rootfs);
         assert!(state.pid.is_none());
+        assert_eq!(state.owner, owner.name);
+
+        testutil::cleanup(&bundle, &meta_dir).unwrap();
+    }
+
+    #[test]
+    fn created_container_should_be_loaded_collectly() {
+        let container_id = Uuid::new_v4().to_string();
+        let bundle = testutil::init_bundle_dir().unwrap();
+        let rootfs = testutil::init_rootfs_dir(&bundle).unwrap();
+        testutil::init_spec_file(&bundle, &rootfs).unwrap();
+        let spec = specutil::load(&bundle).unwrap();
+
+        let meta_dir = PathBuf::from(DEFAULT_META_ROOT).join(&container_id);
+
+        let mut container = Container::new(&container_id, &bundle, spec);
+
+        assert!(container.create().is_ok());
+
+        let loaded_container = Container::load(&container.id);
+        assert!(loaded_container.is_ok());
+
+        let loaded_container = loaded_container.unwrap();
+
+        assert_eq!(loaded_container.id, container.id);
+        assert_eq!(loaded_container.bundle, container.bundle);
+        assert_eq!(loaded_container.status, container.status);
 
         testutil::cleanup(&bundle, &meta_dir).unwrap();
     }
