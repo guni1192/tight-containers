@@ -22,6 +22,7 @@ pub struct Container {
 }
 
 impl Container {
+    // bundle: must absolute path
     pub fn new(id: &str, bundle: &PathBuf, spec: Spec) -> Self {
         Container {
             id: id.into(),
@@ -54,7 +55,7 @@ impl Container {
             status: self.status,
             pid: None,
             bundle: self.bundle.clone(),
-            rootfs: PathBuf::from(&self.spec.root.path),
+            rootfs: PathBuf::from(&self.spec.root.path).canonicalize()?,
             owner: owner.name,
             annotation: None,
             created: self.created,
@@ -140,15 +141,11 @@ pub mod testutil {
         Ok(())
     }
 
-    pub fn cleanup(bundle: &PathBuf, meta_dir: &PathBuf) -> Result<()> {
-        // bundledir have rootfs, config.json
-        if bundle.exists() {
-            fs::remove_dir_all(&bundle)?;
-        }
-
-        // remove statefile(e.g /run/runt/<container-id>/state.json)
-        if meta_dir.exists() {
-            fs::remove_dir_all(&meta_dir)?;
+    pub fn cleanup(paths: &[&PathBuf]) -> Result<()> {
+        for path in paths {
+            if path.exists() {
+                fs::remove_dir_all(&path)?;
+            }
         }
         Ok(())
     }
@@ -180,7 +177,7 @@ pub mod test {
         assert!(container.create().is_ok());
 
         assert_eq!(container.status, Status::Created);
-        testutil::cleanup(&bundle, &meta_dir).unwrap();
+        testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
 
     #[test]
@@ -208,7 +205,7 @@ pub mod test {
         let state = container.state().unwrap();
         assert!(state.created.is_some());
 
-        testutil::cleanup(&bundle, &meta_dir).unwrap();
+        testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
 
     #[test]
@@ -235,6 +232,6 @@ pub mod test {
         assert_eq!(loaded_container.bundle, container.bundle);
         assert_eq!(loaded_container.status, container.status);
 
-        testutil::cleanup(&bundle, &meta_dir).unwrap();
+        testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
 }
