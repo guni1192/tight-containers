@@ -10,7 +10,9 @@ use serde_derive::{Deserialize, Serialize};
 
 use crate::container::specs::{Spec, State, Status, OCI_VERSION};
 
+pub mod process;
 pub mod specs;
+mod syscallutils;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Container {
@@ -18,6 +20,7 @@ pub struct Container {
     pub spec: Spec,
     pub bundle: PathBuf,
     pub status: Status,
+    pub pid: Option<i32>,
     pub created: Option<DateTime<Utc>>,
 }
 
@@ -29,6 +32,7 @@ impl Container {
             bundle: bundle.to_path_buf(),
             spec,
             status: Status::Creating,
+            pid: None,
             created: None,
         }
     }
@@ -41,9 +45,32 @@ impl Container {
         // container creating
         // -----
 
-        self.status = Status::Created;
-        self.created = Some(Utc::now());
-        self.save_metadata(&self)?;
+        let process = self.spec.process.clone().expect("process must be set: ");
+        match process.spawn(&self.bundle)? {
+            // Parent process
+            Some(child_pid) => {
+                self.status = Status::Created;
+                self.created = Some(Utc::now());
+                self.pid = Some(child_pid.as_raw());
+                self.save_metadata(&self)?;
+            }
+            // Child process
+            None => std::process::exit(0),
+        }
+        Ok(())
+    }
+
+    pub fn start(&self) -> Result<()> {
+        let process = self.spec.process.clone().expect("process must be set: ");
+        for i in 1..5 {
+            let result = process.trigger_container_start(&self.bundle);
+            if result.is_ok() {
+                break;
+            }
+            if i == 5 && result.is_err() {
+                return result;
+            }
+        }
         Ok(())
     }
 
@@ -59,7 +86,7 @@ impl Container {
             oci_version: OCI_VERSION.into(),
             id: self.id.clone(),
             status: self.status,
-            pid: None,
+            pid: self.pid,
             bundle: self.bundle.clone(),
             rootfs: PathBuf::from(&self.spec.root.path).canonicalize()?,
             owner: owner.name,
@@ -193,6 +220,7 @@ pub mod test {
         assert!(container.create().is_ok());
 
         assert_eq!(container.status, Status::Created);
+        assert!(container.start().is_ok());
         testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
 
@@ -220,6 +248,7 @@ pub mod test {
         assert!(container.create().is_ok());
         let state = container.state().unwrap();
         assert!(state.created.is_some());
+        assert!(container.start().is_ok());
 
         testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
@@ -239,7 +268,6 @@ pub mod test {
         assert!(container.create().is_ok());
 
         let loaded_container = Container::load(&container.id);
-        assert!(loaded_container.is_ok());
 
         let loaded_container = loaded_container.unwrap();
 
@@ -247,6 +275,7 @@ pub mod test {
         assert_eq!(loaded_container.id, container.id);
         assert_eq!(loaded_container.bundle, container.bundle);
         assert_eq!(loaded_container.status, container.status);
+        assert!(container.start().is_ok());
 
         testutil::cleanup(&[&bundle, &meta_dir]).unwrap();
     }
@@ -263,6 +292,7 @@ pub mod test {
 
         let mut container = Container::new(&container_id, &bundle, spec);
         assert!(container.create().is_ok());
+        assert!(container.start().is_ok());
 
         assert!(container.delete().is_ok());
         assert!(!meta_dir.exists());
