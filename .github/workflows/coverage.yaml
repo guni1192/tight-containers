@@ -12,6 +12,14 @@ jobs:
         with:
           toolchain: nightly
           override: true
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os  }}-cargo-${{ hashFiles('**/Cargo.lock')  }}
+
       - name: Testing
         uses: actions-rs/cargo@v1
         with:
