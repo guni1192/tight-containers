@@ -53,6 +53,10 @@ impl Container {
                 self.created = Some(Utc::now());
                 self.pid = Some(child_pid.as_raw());
                 self.save_metadata(&self)?;
+                // waitpid(pid, )
+                // self.status = Status::Stopperd;
+                // self.pid = None;
+                // self.save_metadata(&self)?;
             }
             // Child process
             None => std::process::exit(0),

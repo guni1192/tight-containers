@@ -15,7 +15,8 @@ impl Process {
     pub fn wait_for_writing(&self, bundle: &PathBuf) -> Result<()> {
         let fifo_path = bundle.join(START_TRIGGER_FIFO);
         let mut file = File::create(&fifo_path)?;
-        mkfifo(&fifo_path, Mode::all())?;
+        let mode = 0o0660;
+        mkfifo(&fifo_path, Mode::from_bits_truncate(mode))?;
         file.write_all(b"bang")?;
 
         Ok(())
